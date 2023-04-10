@@ -5,13 +5,14 @@ Werkzeug Documentation:  https://werkzeug.palletsprojects.com/
 This file creates your application.
 """
 
-from app import app
 from flask import render_template, request, jsonify, send_file,  redirect, url_for, flash, session, abort,send_from_directory
 import os
 from app.models import movies
 from app.forms import MovieForm
 from app import app,db
 from werkzeug.utils import secure_filename
+import datetime
+from flask_wtf.csrf import generate_csrf
 
 
 ###
@@ -24,26 +25,38 @@ def index():
 
 
 @app.route('/api/v1/movies', methods=['POST'])
-def movies():
+def get_movies():
     form=MovieForm()
     if form.validate_on_submit:
         title= form.title.data
         description= form.description.data
         posterdata= form.poster.data
         poster= secure_filename(posterdata.filename)
-        posterpath= os.path.join(app.config['UPLOAD_FOLDER'],poster)
-        posterdata.save(posterpath)
-        created_at= form.created_at.data
+        posterdata.save(os.path.join(app.config['UPLOAD_FOLDER'],poster))
+        
+        #created_at= form.created_at.data
+        created_at=datetime.datetime.now()
 
         new_movie = movies(title,description,poster,created_at)
         db.session.add(new_movie)
         db.session.commit()        
 
-        jso=jsonify(message='Movie Successfully added',poster=poster,description=description,created_at=created_at)
-        return jso
+        moviee={
+            'message': 'Movie Successfully added',
+            'poster': poster,
+            'description': description,
+            'created_at': created_at
+        }
+        return jsonify(moviee)
+
+        #return jsonify(message='Movie Successfully added',poster=poster,description=description,created_at=created_at)
     
-    jsx=jsonify(errors=form_errors(form))
-    return jsx
+    
+    return jsonify(errors=form_errors(form))
+
+@app.route('/api/v1/csrf-token', methods=['GET'])
+def get_csrf():
+ return jsonify({'csrf_token': generate_csrf()})
         
 
 

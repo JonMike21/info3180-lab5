@@ -8,4 +8,4 @@ class MovieForm(FlaskForm):
     title= StringField('Title', validators=[InputRequired()])
     description = TextAreaField('Description', validators=[InputRequired()])
     poster = FileField('Poster', validators=[FileRequired(),FileAllowed(['jpg', 'png','jpeg','JPG'], 'Images only!')])    
-    created_at = DateField('Created_at', format='%m/%d/%Y', validators=[InputRequired()])
+    #created_at = DateField('Created_at', format='%m/%d/%Y', validators=[InputRequired()])
