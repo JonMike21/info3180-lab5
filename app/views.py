@@ -24,35 +24,53 @@ def index():
     return jsonify(message="This is the beginning of our API")
 
 
-@app.route('/api/v1/movies', methods=['POST'])
+@app.route('/api/v1/movies', methods=['POST','GET'])
 def get_movies():
-    form=MovieForm()
-    if form.validate_on_submit:
-        title= form.title.data
-        description= form.description.data
-        posterdata= form.poster.data
-        poster= secure_filename(posterdata.filename)
-        posterdata.save(os.path.join(app.config['UPLOAD_FOLDER'],poster))
+    m_list=[]
+
+    if request.method == 'GET':
         
-        #created_at= form.created_at.data
-        created_at=datetime.datetime.now()
+        moviez = db.session.execute(db.select(movies)).scalars()
+        for mval in moviez:
+            m_list.append({
+                'id': mval.id,
+                'title': mval.title,
+                'description': mval.description,
+                'poster': url_for('get_image',filename=mval.poster) 
 
-        new_movie = movies(title,description,poster,created_at)
-        db.session.add(new_movie)
-        db.session.commit()        
-
-        moviee={
-            'message': 'Movie Successfully added',
-            'poster': poster,
-            'description': description,
-            'created_at': created_at
-        }
-        return jsonify(moviee)
-
-        #return jsonify(message='Movie Successfully added',poster=poster,description=description,created_at=created_at)
+                        })
+        return jsonify(data=m_list)
     
+    form=MovieForm()
+    if request.method == 'POST':
+
+        if form.validate_on_submit:
+            title= form.title.data
+            description= form.description.data
+            posterdata= form.poster.data
+            poster= secure_filename(posterdata.filename)
+            posterdata.save(os.path.join(app.config['UPLOAD_FOLDER'],poster))
+            
+            #created_at= form.created_at.data
+            created_at=datetime.datetime.now()
+
+            new_movie = movies(title,description,poster,created_at)
+            db.session.add(new_movie)
+            db.session.commit()        
+
+            moviee={
+                'message': 'Movie Successfully added',
+                'poster': poster,
+                'description': description,
+                'created_at': created_at
+            }
+            return jsonify(moviee)
+
+            #return jsonify(message='Movie Successfully added',poster=poster,description=description,created_at=created_at)
+        return jsonify(errors=form_errors(form)) #in POST
     
-    return jsonify(errors=form_errors(form))
+
+    
 
 @app.route('/api/v1/csrf-token', methods=['GET'])
 def get_csrf():
@@ -60,7 +78,11 @@ def get_csrf():
         
 
 
-     
+@app.route('/api/v1/posters/<filename>')
+def get_image(filename):
+    val=send_from_directory(os.path.join(os.getcwd(), app.config['UPLOAD_FOLDER']), filename)
+    return val
+
 
 
 
@@ -106,4 +128,5 @@ def add_header(response):
 @app.errorhandler(404)
 def page_not_found(error):
     """Custom 404 page."""
-    return render_template('404.html'), 404
+    #return render_template('404.html'), 404
+    return jsonify(errors=error)
